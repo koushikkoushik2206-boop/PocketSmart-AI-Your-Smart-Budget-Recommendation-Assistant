@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PocketSmart AI - Smart Budget & Recommendations</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 text-gray-800 font-sans min-h-screen">
+    <div class="max-w-4xl mx-auto p-6">
+        <header class="mb-8 text-center">
+            <h1 class="text-3xl font-bold text-indigo-600">PocketSmart AI</h1>
+            <p class="text-gray-600">Your Smart Budget & AI Recommendation Assistant</p>
+        </header>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Add Expense & Goals Form -->
+            <div class="space-y-6">
+                <div class="bg-white p-6 rounded-lg shadow">
+                    <h2 class="text-xl font-semibold mb-4 text-indigo-500">Log New Expense</h2>
+                    <form id="expenseForm" class="space-y-4">
+                        <input type="text" id="title" placeholder="Title (e.g. Groceries)" required class="w-full border p-2 rounded">
+                        <input type="number" id="amount" step="0.01" placeholder="Amount ($)" required class="w-full border p-2 rounded">
+                        <select id="category" class="w-full border p-2 rounded">
+                            <option value="Food">Food & Dining</option>
+                            <option value="Housing">Housing & Utilities</option>
+                            <option value="Entertainment">Entertainment</option>
+                            <option value="Transport">Transportation</option>
+                            <option value="Shopping">Shopping</option>
+                        </select>
+                        <input type="date" id="date" required class="w-full border p-2 rounded">
+                        <button type="submit" class="w-full bg-indigo-600 text-white py-2 rounded hover:bg-indigo-700">Add Expense</button>
+                    </form>
+                </div>
+
+                <div class="bg-white p-6 rounded-lg shadow">
+                    <h2 class="text-xl font-semibold mb-4 text-indigo-500">Monthly Strategy</h2>
+                    <form id="aiForm" class="space-y-4">
+                        <div>
+                            <label class="block text-sm text-gray-600">Monthly Income ($)</label>
+                            <input type="number" id="income" value="4000" class="w-full border p-2 rounded">
+                        </div>
+                        <div>
+                            <label class="block text-sm text-gray-600">Monthly Savings Goal ($)</label>
+                            <input type="number" id="savings" value="1000" class="w-full border p-2 rounded">
+                        </div>
+                        <button type="button" onclick="fetchAIAdvice()" class="w-full bg-emerald-600 text-white py-2 rounded hover:bg-emerald-700">Get AI Recommendations</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- List & AI Insights -->
+            <div class="space-y-6">
+                <div class="bg-white p-6 rounded-lg shadow">
+                    <h2 class="text-xl font-semibold mb-4 text-indigo-500">Recent Expenses</h2>
+                    <ul id="expenseList" class="divide-y max-h-60 overflow-y-auto">
+                        <!-- Populated dynamically -->
+                    </ul>
+                </div>
+
+                <div class="bg-white p-6 rounded-lg shadow">
+                    <h2 class="text-xl font-semibold mb-4 text-emerald-600">AI Recommendation Engine</h2>
+                    <div id="aiResult" class="text-sm whitespace-pre-line text-gray-700 bg-emerald-50 p-4 rounded border border-emerald-200">
+                        Enter your monthly financial goals and click "Get AI Recommendations" to get custom budgeting advice.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = "http://127.0.0.1:8000";
+
+        document.getElementById('date').valueAsDate = new Date();
+
+        async function loadExpenses() {
+            const res = await fetch(`${API_URL}/expenses`);
+            const data = await res.json();
+            const list = document.getElementById('expenseList');
+            list.innerHTML = data.map(e => `
+                <li class="py-2 flex justify-between items-center text-sm">
+                    <div>
+                        <p class="font-medium">${e.title}</p>
+                        <p class="text-gray-400 text-xs">${e.category} • ${e.date}</p>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <span class="font-bold text-gray-700">$${e.amount}</span>
+                        <button onclick="deleteExpense(${e.id})" class="text-red-500 hover:underline text-xs">Delete</button>
+                    </div>
+                </li>
+            `).join('');
+        }
+
+        document.getElementById('expenseForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const expense = {
+                title: document.getElementById('title').value,
+                amount: parseFloat(document.getElementById('amount').value),
+                category: document.getElementById('category').value,
+                date: document.getElementById('date').value
+            };
+            await fetch(`${API_URL}/expenses`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(expense)
+            });
+            document.getElementById('title').value = '';
+            document.getElementById('amount').value = '';
+            loadExpenses();
+        });
+
+        async function deleteExpense(id) {
